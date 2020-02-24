@@ -1,0 +1,15 @@
+diff --git a/event_log_track_auth/event_log_track_auth.module b/event_log_track_auth/event_log_track_auth.module
+index cbd263d..8ee8f95 100755
+--- a/event_log_track_auth/event_log_track_auth.module
++++ b/event_log_track_auth/event_log_track_auth.module
+@@ -92,9 +92,8 @@ function event_log_track_auth_user_login_validate($form, &$form_state) {
+     $log = array(
+       'type' => 'authentication',
+       'operation' => 'fail',
+-      'description' => t('%user (pass %pass)', array(
++      'description' => t('%user', array(
+         '%user' => $form_state->getValue('name'),
+-        '%pass' => $form_state->getValue('pass'),
+       )),
+       'ref_char' => $form_state->getValue('name'),
+     );

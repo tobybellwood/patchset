@@ -1,0 +1,14 @@
+diff --git a/src/Plugin/ConfigFilter/IgnoreFilter.php b/src/Plugin/ConfigFilter/IgnoreFilter.php
+index f654b34..24e55ca 100644
+--- a/src/Plugin/ConfigFilter/IgnoreFilter.php
++++ b/src/Plugin/ConfigFilter/IgnoreFilter.php
+@@ -171,6 +171,9 @@ class IgnoreFilter extends ConfigFilterBase implements ContainerFactoryPluginInt
+   protected function activeReadMultiple(array $names, array $data) {
+     $filtered_data = [];
+     foreach ($names as $name) {
++      if (!array_key_exists($name, $data)) {
++        $data[$name] = [];
++      }
+       $filtered_data[$name] = $this->activeRead($name, $data[$name]);
+     }
+ 

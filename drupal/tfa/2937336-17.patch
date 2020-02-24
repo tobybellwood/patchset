@@ -1,0 +1,117 @@
+diff --git a/src/Form/BasicOverview.php b/src/Form/BasicOverview.php
+index 2a5d4cb..f7dfeda 100644
+--- a/src/Form/BasicOverview.php
++++ b/src/Form/BasicOverview.php
+@@ -144,6 +144,29 @@ class BasicOverview extends FormBase {
+       ];
+     }
+ 
++    if ( $configuration['enabled'] ) {
++      $output['validation_skip_status'] = [
++        '#type'   => 'markup',
++        '#markup' => $this->t( 'Number of times validation skipped: @skipped of @limit', [
++          '@skipped' => $user_tfa['validation_skipped'],
++          '@limit' => $configuration['validation_skip'],
++        ]),
++      ];
++    }
++
++    if ($this->canPerformReset($user)) {
++      $output['actions'] = ['#type' => 'actions'];
++      $output['actions']['reset_skip_attempts'] = [
++        '#type' => 'submit',
++        '#value' => $this->t('Reset skip validation attempts'),
++        '#submit' => ['::resetSkipValidationAttempts'],
++      ];
++      $output['account'] = [
++        '#type' => 'value',
++        '#value' => $user,
++      ];
++    }
++
+     return $output;
+   }
+ 
+@@ -184,4 +207,40 @@ class BasicOverview extends FormBase {
+   public function submitForm(array &$form, FormStateInterface $form_state) {
+   }
+ 
++  /**
++   * Resets TFA attempts for the given user account.
++   *
++   * @param array $form
++   *   The form definition.
++   * @param \Drupal\Core\Form\FormStateInterface $form_state
++   *   The form state.
++   */
++  public function resetSkipValidationAttempts(array $form, FormStateInterface $form_state) {
++    $account = $form_state->getValue('account');
++    $tfa_data = $this->tfaGetTfaData($account->id(), $this->userData);
++    $tfa_data['validation_skipped'] = 0;
++    $this->tfaSaveTfaData($account->id(), $this->userData, $tfa_data);
++    $this->messenger()->addMessage($this->t('Validation attempts have been reset for user @name.', [
++      '@name' => $account->getDisplayName(),
++    ]));
++    $this->logger('tfa')->notice('Validation attempts reset for @account by @current_user.', [
++      '@account' => $account->getAccountName(),
++      '@current_user' => $this->currentUser()->getAccountName(),
++    ]);
++  }
++
++  /**
++   * Determine if the current user can perform a TFA attempt reset.
++   *
++   * @param \Drupal\user\UserInterface $account
++   *   The account that TFA is for.
++   */
++  protected function canPerformReset(UserInterface $account) {
++    $current_user = $this->currentUser();
++    return $current_user->hasPermission('administer users')
++      // Disallow users from resetting their own.
++      // @todo Make this configurable.
++      && $current_user->id() != $account->id();
++  }
++
+ }
+diff --git a/src/Form/SettingsForm.php b/src/Form/SettingsForm.php
+index 5773f82..9d03fe2 100644
+--- a/src/Form/SettingsForm.php
++++ b/src/Form/SettingsForm.php
+@@ -469,6 +469,13 @@ class SettingsForm extends ConfigFormBase {
+         ],
+       ],
+     ];
++    $form['help_text'] = [
++      '#type' => 'textfield',
++      '#title' => $this->t('Help text'),
++      '#description' => $this->t('Text to display when a user is locked out and blocked from logging in.'),
++      '#default_value' => $config->get('help_text'),
++      '#required' => TRUE,
++    ];
+ 
+     $form['actions']['#type'] = 'actions';
+     $form['actions']['submit'] = [
+@@ -532,6 +539,7 @@ class SettingsForm extends ConfigFormBase {
+       ->set('mail.tfa_enabled_configuration.body', $form_state->getValue('tfa_enabled_configuration_body'))
+       ->set('mail.tfa_disabled_configuration.subject', $form_state->getValue('tfa_disabled_configuration_subject'))
+       ->set('mail.tfa_disabled_configuration.body', $form_state->getValue('tfa_disabled_configuration_body'))
++      ->set('help_text', $form_state->getValue('help_text'))
+       ->save();
+ 
+     parent::submitForm($form, $form_state);
+diff --git a/src/Form/TfaLoginForm.php b/src/Form/TfaLoginForm.php
+index f2654ef..a35949a 100644
+--- a/src/Form/TfaLoginForm.php
++++ b/src/Form/TfaLoginForm.php
+@@ -233,6 +233,11 @@ class TfaLoginForm extends UserLoginForm {
+       $this->tfaContext->doUserLogin();
+       $form_state->setRedirect('<front>');
+     }
++    else {
++      $message = $this->config('tfa.settings')->get('help_text');
++      $this->messenger()->addError($message);
++      $this->logger('tfa')->notice('@name has no more remaining attempts for bypassing the second authentication factor.', ['@name' => $this->tfaContext->getUser()->getAccountName()]);
++    }
+   }
+ 
+   /**

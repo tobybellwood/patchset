@@ -1,0 +1,110 @@
+diff --git a/src/Controller/TfaLoginController.php b/src/Controller/TfaLoginController.php
+index f83402f..dfbcd72 100644
+--- a/src/Controller/TfaLoginController.php
++++ b/src/Controller/TfaLoginController.php
+@@ -93,6 +93,18 @@ class TfaLoginController {
+ 
+     $is_self = $account->id() === $target_user->id();
+     $is_admin = $account->hasPermission('administer users');
++
++    if (!$is_self) {
++      $routeName = $route->getRouteName();
++      // All users are banned from visiting others' tfa setup pages,
++      // including admin users.
++      if ($routeName == 'tfa.validation.setup' || $routeName == 'tfa.plugin.reset') {
++        // @todo Allow an admin with special permission to conduct some specific methods.
++
++        return $access->andIf(AccessResult::forbidden('You can not access others\' tfa page.'));
++      }
++    }
++
+     $is_self_or_admin = AccessResult::allowedIf($is_self || $is_admin);
+ 
+     return $access->andIf($is_self_or_admin);
+diff --git a/src/Form/BasicOverview.php b/src/Form/BasicOverview.php
+index bac116c..2673912 100644
+--- a/src/Form/BasicOverview.php
++++ b/src/Form/BasicOverview.php
+@@ -105,35 +105,38 @@ class BasicOverview extends FormBase {
+     }
+ 
+     if ($configuration['enabled']) {
+-      $enabled = isset($user_tfa['status'],$user_tfa['data']) && !empty($user_tfa['data']['plugins']) && $user_tfa['status'] ? TRUE : FALSE;
+-      // Validation plugin setup.
+-      $allowed_plugins = $configuration['allowed_validation_plugins'];
+-      $enabled_plugins = isset($user_tfa['data']['plugins']) ? $user_tfa['data']['plugins'] : [];
+-      $default_plugin = $configuration['default_validation_plugin'];
+-      $enabled_fallback_plugin = '';
+-      if (isset($configuration['fallback_plugins'][$default_plugin])) {
+-        $enabled_fallback_plugin = key($configuration['fallback_plugins'][$default_plugin]);
+-      }
+-
+-      foreach ($allowed_plugins as $allowed_plugin) {
+-        $output[$allowed_plugin] = $this->tfaPluginSetupFormOverview($allowed_plugin, $user, !empty($enabled_plugins[$allowed_plugin]));
+-      }
+-
+-      if ($enabled) {
+-        $login_plugins = $configuration['login_plugins'];
+-        foreach ($login_plugins as $lplugin_id) {
+-          $output[$lplugin_id] = $this->tfaPluginSetupFormOverview($lplugin_id, $user, $enabled);
+-
++      // The TFA application settings and Recovery codes settings (Fallback plugins)
++      // should be hidden from the user who doesn't have the permission to change.
++      if ($this->canChangeTFA($user)) {
++        $enabled = isset($user_tfa['status'],$user_tfa['data']) && !empty($user_tfa['data']['plugins']) && $user_tfa['status'] ? TRUE : FALSE;
++        // Validation plugin setup.
++        $allowed_plugins = $configuration['allowed_validation_plugins'];
++        $enabled_plugins = isset($user_tfa['data']['plugins']) ? $user_tfa['data']['plugins'] : [];
++        $default_plugin = $configuration['default_validation_plugin'];
++        $enabled_fallback_plugin = '';
++        if (isset($configuration['fallback_plugins'][$default_plugin])) {
++          $enabled_fallback_plugin = key($configuration['fallback_plugins'][$default_plugin]);
+         }
+ 
+-        $send_plugin = $configuration['send_plugins'];
+-        if ($send_plugin) {
+-          $output[$send_plugin] = $this->tfaPluginSetupFormOverview($send_plugin, $user, $enabled);
++        foreach ($allowed_plugins as $allowed_plugin) {
++          $output[$allowed_plugin] = $this->tfaPluginSetupFormOverview($allowed_plugin, $user, !empty($enabled_plugins[$allowed_plugin]));
+         }
+ 
+-        if ($enabled_fallback_plugin) {
+-          // Fallback Setup.
+-          $output['recovery'] = $this->tfaPluginSetupFormOverview($enabled_fallback_plugin, $user, $enabled);
++        if ($enabled) {
++          $login_plugins = $configuration['login_plugins'];
++          foreach ($login_plugins as $lplugin_id) {
++            $output[$lplugin_id] = $this->tfaPluginSetupFormOverview($lplugin_id, $user, $enabled);
++          }
++
++          $send_plugin = $configuration['send_plugins'];
++          if ($send_plugin) {
++            $output[$send_plugin] = $this->tfaPluginSetupFormOverview($send_plugin, $user, $enabled);
++          }
++
++          if ($enabled_fallback_plugin) {
++            // Fallback Setup.
++            $output['recovery'] = $this->tfaPluginSetupFormOverview($enabled_fallback_plugin, $user, $enabled);
++          }
+         }
+       }
+     }
+@@ -243,4 +246,18 @@ class BasicOverview extends FormBase {
+       && $current_user->id() != $account->id();
+   }
+ 
++  /**
++   * Determine if the current user can change the TFA setup.
++   *
++   * @param \Drupal\user\UserInterface $account
++   *   The account that TFA is for.
++   */
++  protected function canChangeTFA(UserInterface $account) {
++    $current_user = $this->currentUser();
++
++    // Disallow users from changing others' TFA setup.
++    // @todo Make this configurable or create a new permission for it.
++    return $current_user->id() === $account->id();
++  }
++
+ }

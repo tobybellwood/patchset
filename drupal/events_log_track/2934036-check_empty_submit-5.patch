@@ -1,0 +1,15 @@
+diff --git a/event_log_track.module b/event_log_track.module
+index c46979b..26e4d4d 100755
+--- a/event_log_track.module
++++ b/event_log_track.module
+@@ -184,7 +184,9 @@ function event_log_track_form_alter(&$form, FormStateInterface $form_state, $for
+  */
+ function event_log_track_add_submit_handler(array &$element, $callback) {
+   if (array_key_exists("#submit", $element)) {
+-    $element["#submit"][] = $callback;
++    if ((!empty($element['#type']) && $element['#type'] == 'form') || count($element["#submit"])) {
++      $element["#submit"][] = $callback;
++    }
+   }
+   $keys = Element::children($element);
+   foreach ($keys as $key) {

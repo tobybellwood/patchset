@@ -1,0 +1,192 @@
+diff --git a/event_log_track_file/event_log_track_file.info.yml b/event_log_track_file/event_log_track_file.info.yml
+new file mode 100644
+index 0000000..c468cf3
+--- /dev/null
++++ b/event_log_track_file/event_log_track_file.info.yml
+@@ -0,0 +1,8 @@
++name: Events Log Track File
++description: 'Logs file CUD events performed by the user.'
++type: module
++dependencies:
++  - event_log_track
++core: '8.x'
++package: Statistics
++project: 'events_log_track'
+diff --git a/event_log_track_file/event_log_track_file.module b/event_log_track_file/event_log_track_file.module
+new file mode 100644
+index 0000000..9d6125f
+--- /dev/null
++++ b/event_log_track_file/event_log_track_file.module
+@@ -0,0 +1,69 @@
++<?php
++
++/**
++ * @file
++ * Logs file entity CUD commands in the event_log_track module.
++ */
++
++use Drupal\Core\Entity\EntityInterface;
++
++/**
++ * Implements hook_event_log_track_handlers().
++ */
++function event_log_track_file_event_log_track_handlers() {
++  $handlers = array();
++  // File event log handler
++  $handlers['file'] = array(
++    'title' => t('File'),
++  );
++
++  return $handlers;
++}
++
++/**
++ * Implements hook_ENTITY_TYPE_insert().
++ */
++function event_log_track_file_insert(EntityInterface $entity) {
++  $log = [
++    'type' => 'file',
++    'operation' => 'insert',
++    'description' => $entity->getFileUri(),
++    'ref_numeric' => $entity->id(),
++    'ref_char' => $entity->getFilename(),
++  ];
++
++  // Insert log.
++  event_log_track_insert($log);
++}
++
++/**
++ * Implements hook_ENTITY_TYPE_update().
++ */
++function event_log_track_file_update(EntityInterface $entity) {
++  $log = [
++    'type' => 'file',
++    'operation' => 'update',
++    'description' => $entity->getFileUri(),
++    'ref_numeric' => $entity->id(),
++    'ref_char' => $entity->getFilename(),
++  ];
++
++  // Insert log.
++  event_log_track_insert($log);
++}
++
++/**
++ * Implements hook_ENTITY_TYPE_delete().
++ */
++function event_log_track_file_delete(EntityInterface $entity) {
++  $log = [
++    'type' => 'file',
++    'operation' => 'delete',
++    'description' => $entity->getFileUri(),
++    'ref_numeric' => $entity->id(),
++    'ref_char' => $entity->getFilename(),
++  ];
++
++  // Insert log.
++  event_log_track_insert($log);
++}
+diff --git a/event_log_track_media/event_log_track_media.info.yml b/event_log_track_media/event_log_track_media.info.yml
+new file mode 100644
+index 0000000..e42a5d1
+--- /dev/null
++++ b/event_log_track_media/event_log_track_media.info.yml
+@@ -0,0 +1,9 @@
++name: Events Log Track Media
++description: 'Logs node CUD events performed by the user.'
++type: module
++dependencies:
++  - event_log_track
++  - media
++core: '8.x'
++package: Statistics
++project: 'events_log_track'
+diff --git a/event_log_track_media/event_log_track_media.module b/event_log_track_media/event_log_track_media.module
+new file mode 100644
+index 0000000..8db0382
+--- /dev/null
++++ b/event_log_track_media/event_log_track_media.module
+@@ -0,0 +1,82 @@
++<?php
++
++/**
++ * @file
++ * Logs media entity CUD commands in the event_log_track module.
++ */
++
++use Drupal\Component\Utility\Html;
++use Drupal\Core\Entity\EntityInterface;
++
++/**
++ * Implements hook_event_log_track_handlers().
++ */
++function event_log_track_media_event_log_track_handlers() {
++  $handlers = [];
++  // Media event log handler.
++  $handlers['media'] = [
++    'title' => t('Media'),
++  ];
++
++  return $handlers;
++}
++
++/**
++ * Implements hook_ENTITY_TYPE_insert().
++ */
++function event_log_track_media_insert(EntityInterface $entity) {
++  $log = [
++    'type' => 'media',
++    'operation' => 'insert',
++    'description' => t('%title (%type)%revision_log', [
++      '%type' => $entity->bundle(),
++      '%title' => $entity->getName(),
++      '%revision_log' => $entity->getRevisionLogMessage() ? ': ' . $entity->getRevisionLogMessage() : '',
++    ]),
++    'ref_numeric' => $entity->id(),
++    'ref_char' => Html::escape($entity->label()),
++  ];
++
++  // Insert log.
++  event_log_track_insert($log);
++}
++
++/**
++ * Implements hook_ENTITY_TYPE_update().
++ */
++function event_log_track_media_update(EntityInterface $entity) {
++  $log = [
++    'type' => 'media',
++    'operation' => 'update',
++    'description' => t('%title (%type)%revision_log', [
++      '%type' => $entity->bundle(),
++      '%title' => $entity->getName(),
++      '%revision_log' => $entity->getRevisionLogMessage() ? ': ' . $entity->getRevisionLogMessage() : '',
++    ]),
++    'ref_numeric' => $entity->id(),
++    'ref_char' => Html::escape($entity->label()),
++  ];
++
++  // Insert log.
++  event_log_track_insert($log);
++}
++
++/**
++ * Implements hook_ENTITY_TYPE_delete().
++ */
++function event_log_track_media_delete(EntityInterface $entity) {
++  $log = [
++    'type' => 'media',
++    'operation' => 'delete',
++    'description' => t('%title (%type)%revision_log', [
++      '%type' => $entity->bundle(),
++      '%title' => $entity->getName(),
++      '%revision_log' => $entity->getRevisionLogMessage() ? ': ' . $entity->getRevisionLogMessage() : '',
++    ]),
++    'ref_numeric' => $entity->id(),
++    'ref_char' => Html::escape($entity->label()),
++  ];
++
++  // Insert log.
++  event_log_track_insert($log);
++}

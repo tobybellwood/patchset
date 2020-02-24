@@ -1,0 +1,329 @@
+diff --git a/config/install/metatag.unset.yml b/config/install/metatag.unset.yml
+new file mode 100644
+index 0000000..1294d36
+--- /dev/null
++++ b/config/install/metatag.unset.yml
+@@ -0,0 +1,17 @@
++unset_by_rel: false
++unset_by_name: false
++rel_list:
++    - delete-form
++    - edit-form
++    - version-history
++    - revision
++    - display
++    - drupal:content-translation-overview
++    - drupal:content-translation-add
++    - drupal:content-translation-edit
++    - drupal:content-translation-delete
++name_list:
++    - Generator
++    - MobileOptimized
++    - HandheldFriendly
++    - viewport
+diff --git a/config/schema/metatag.schema.yml b/config/schema/metatag.schema.yml
+index 78c0d71..3812da6 100644
+--- a/config/schema/metatag.schema.yml
++++ b/config/schema/metatag.schema.yml
+@@ -6,3 +6,24 @@ field.value.metatag:
+     value:
+       type: string
+       label: 'Metatags'
++
++metatag.unset:
++  type: config_object
++  label: 'Metatag unset'
++  mapping:
++    unset_by_rel:
++      type: boolean
++      label: 'Unset by "rel" attribute'
++    unset_by_name:
++      type: boolean
++      label: 'Unset by "name" attribute'
++    rel_list:
++      type: sequence
++      label: 'List of values for "rel" attribute'
++      sequence:
++        type: string
++    name_list:
++      type: sequence
++      label: 'List of values for "name" attribute'
++      sequence:
++        type: string
+diff --git a/metatag.links.task.yml b/metatag.links.task.yml
+index 637e9be..858f2f1 100644
+--- a/metatag.links.task.yml
++++ b/metatag.links.task.yml
+@@ -8,3 +8,7 @@ metatag.settings:
+   base_route: 'entity.metatag_defaults.collection'
+   title: 'Settings'
+   weight: 10
++metatag.tab_unset:
++  title: 'Unset'
++  route_name: metatag.unset
++  base_route: entity.metatag_defaults.collection
+diff --git a/metatag.module b/metatag.module
+index b9fad84..fec7397 100644
+--- a/metatag.module
++++ b/metatag.module
+@@ -184,12 +184,17 @@ function metatag_page_attachments_alter(array &$attachments) {
+   if ($route_match->getRouteName() == 'entity.taxonomy_term.canonical' && ($term = $route_match->getParameter('taxonomy_term')) && $term instanceof TermInterface) {
+     _metatag_remove_duplicate_entity_tags($attachments);
+   }
++  // Remove specified tags from head.
++  _metatag_unset_specified_tags($attachments);
+ }
+ 
+ /**
+  * Implements hook_entity_view_alter().
+  */
+ function metatag_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
++  // Remove specified tags from head.
++  _metatag_unset_specified_tags($build);
++
+   // If this is a 403 or 404 page then don't output these meta tags.
+   // @todo Make the default meta tags load properly so this is unnecessary.
+   if ($display->getOriginalId() == 'node.403.default' || $display->getOriginalId() == 'node.404.default') {
+@@ -259,6 +264,36 @@ function _metatag_remove_duplicate_entity_tags(array &$build) {
+   }
+ }
+ 
++/**
++ * Remove specified tags from build.
++ *
++ * @param array $build
++ *   The build.
++ */
++function _metatag_unset_specified_tags(array &$build) {
++  $config = \Drupal::config('metatag.unset');
++  // Unset head link elements by "rel" attribute.
++  if (isset($build['#attached']['html_head_link']) && $config->get('unset_by_rel') && $values = $config->get('rel_list')) {
++    $html_head_links = &$build['#attached']['html_head_link'];
++    foreach ($html_head_links as $key => $link) {
++      if (isset($link[0]['rel']) && in_array($link[0]['rel'], $values)) {
++        unset($html_head_links[$key]);
++      }
++    }
++  }
++  // Unset head meta elements by "name" attribute.
++  if (isset($build['#attached']['html_head']) && $config->get('unset_by_name') && $values = $config->get('name_list')) {
++    $html_head = &$build['#attached']['html_head'];
++    foreach ($html_head as $key => $element) {
++      $tag = isset($element[0]['#tag']) ? $element[0]['#tag'] : NULL;
++      $name = isset($element[0]['#attributes']['name']) ? $element[0]['#attributes']['name'] : NULL;
++      if ($tag == 'meta' && in_array($name, $values)) {
++        unset($html_head[$key]);
++      }
++    }
++  }
++}
++
+ /**
+  * Identify whether the current route is supported by the module.
+  *
+diff --git a/metatag.routing.yml b/metatag.routing.yml
+index d809e4d..027e4c4 100644
+--- a/metatag.routing.yml
++++ b/metatag.routing.yml
+@@ -58,3 +58,13 @@ metatag.settings:
+     _permission: 'administer meta tags'
+   options:
+     _admin_route: TRUE
++
++metatag.unset:
++  path: '/admin/config/search/metatag/unset'
++  defaults:
++    _form: '\Drupal\metatag\Form\MetatagUnsetForm'
++    _title: 'Unset metatags'
++  requirements:
++    _permission: 'administer meta tags'
++  options:
++    _admin_route: TRUE
+diff --git a/metatag.services.yml b/metatag.services.yml
+index c55377f..c37eb16 100644
+--- a/metatag.services.yml
++++ b/metatag.services.yml
+@@ -14,3 +14,8 @@ services:
+   metatag.manager:
+     class: Drupal\metatag\MetatagManager
+     arguments: ['@plugin.manager.metatag.group', '@plugin.manager.metatag.tag', '@metatag.token', '@logger.factory', '@entity_type.manager']
++
++  metatag.entity_view_subscriber:
++    class: Drupal\metatag\EventSubscriber\EntityViewSubscriber
++    tags:
++      - { name: 'event_subscriber' }
+diff --git a/src/EventSubscriber/EntityViewSubscriber.php b/src/EventSubscriber/EntityViewSubscriber.php
+new file mode 100644
+index 0000000..19b20ca
+--- /dev/null
++++ b/src/EventSubscriber/EntityViewSubscriber.php
+@@ -0,0 +1,36 @@
++<?php
++
++namespace Drupal\metatag\EventSubscriber;
++
++use Symfony\Component\EventDispatcher\EventSubscriberInterface;
++use Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent;
++use Symfony\Component\HttpKernel\KernelEvents;
++
++/**
++ * Class EntityViewSubscriber.
++ *
++ * @package Drupal\metatag\EventSubscriber
++ */
++class EntityViewSubscriber implements EventSubscriberInterface {
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function getSubscribedEvents() {
++    $events[KernelEvents::VIEW][] = ['onViewUnsetSpecifiedTags', 10];
++    return $events;
++  }
++
++  /**
++   * Remove specified tags from head.
++   *
++   * @param \Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent $event
++   *   The event to process.
++   */
++  public function onViewUnsetSpecifiedTags(GetResponseForControllerResultEvent $event) {
++    $build = $event->getControllerResult();
++    _metatag_unset_specified_tags($build);
++    $event->setControllerResult($build);
++  }
++
++}
+diff --git a/src/Form/MetatagUnsetForm.php b/src/Form/MetatagUnsetForm.php
+new file mode 100644
+index 0000000..933e78f
+--- /dev/null
++++ b/src/Form/MetatagUnsetForm.php
+@@ -0,0 +1,127 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\metatag\Form\MetatagUnsetForm.
++ */
++
++namespace Drupal\metatag\Form;
++
++use Drupal\Core\Form\FormStateInterface;
++use Drupal\Core\Form\ConfigFormBase;
++
++/**
++ * Class MetatagUnsetForm.
++ *
++ * @package Drupal\metatag\Form
++ */
++class MetatagUnsetForm extends ConfigFormBase {
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFormId() {
++    return 'metatag_unset_form';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function getEditableConfigNames() {
++    return [
++      'metatag.unset',
++    ];
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function buildForm(array $form, FormStateInterface $form_state) {
++    // Get config values.
++    $config = $this->config('metatag.unset');
++    $rel_list = $config->get('rel_list');
++    if (!$rel_list) {
++      $rel_list = [];
++    }
++    $name_list = $config->get('name_list');
++    if (!$name_list) {
++      $name_list = [];
++    }
++
++    // Unset by "rel" attribute.
++    $form['unset_by_rel'] = [
++      '#type' => 'checkbox',
++      '#title' => $this->t('Unset meta tags by "rel" attribute'),
++      '#default_value' => $config->get('unset_by_rel'),
++    ];
++    // Values list for "rel" attribute.
++    $form['rel_list'] = [
++      '#type' => 'textarea',
++      '#description' => $this->t('List of "rel" attribute values (one value per line). Meta tags with a "rel" attribute that has one of these values will be removed.'),
++      '#rows' => 10,
++      '#states' => [
++        // Only show this field when the 'unset_by_rel' checkbox is enabled.
++        'visible' => [
++          ':input[name="unset_by_rel"]' => ['checked' => TRUE],
++        ],
++      ],
++      '#default_value' => implode(PHP_EOL, $rel_list),
++    ];
++    // Unset by "name" attribute.
++    $form['unset_by_name'] = [
++      '#type' => 'checkbox',
++      '#title' => $this->t('Unset meta tags by "name" attribute'),
++      '#default_value' => $config->get('unset_by_name'),
++    ];
++    // Values list for "name" attribute.
++    $form['name_list'] = [
++      '#type' => 'textarea',
++      '#description' => $this->t('List of "name" attribute values (one value per line). Meta tags with a "name" attribute that has one of these values will be removed.'),
++      '#rows' => 10,
++      '#states' => [
++        // Only show this field when the 'unset_by_name' checkbox is enabled.
++        'visible' => [
++          ':input[name="unset_by_name"]' => ['checked' => TRUE],
++        ],
++      ],
++      '#default_value' => implode(PHP_EOL, $name_list),
++    ];
++    return parent::buildForm($form, $form_state);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function submitForm(array &$form, FormStateInterface $form_state) {
++    /** @var \Drupal\core\Config\Config $config */
++    $config = \Drupal::service('config.factory')->getEditable('metatag.unset');
++    $unset_by_rel = (bool) $form_state->getValue('unset_by_rel');
++    $unset_by_name = (bool) $form_state->getValue('unset_by_name');
++    // Define list filter callback.
++    $list_filter_callback = function ($value) {
++      return !empty($value);
++    };
++
++    // Process "rel" values list.
++    if ($unset_by_rel) {
++      $rel_list = explode(PHP_EOL, $form_state->getValue('rel_list', ''));
++      $rel_list = array_map('trim', $rel_list);
++      $rel_list = array_filter($rel_list, $list_filter_callback);
++      $config->set('rel_list', $rel_list);
++    }
++    // Process "name" values list.
++    if ($unset_by_name) {
++      $name_list = explode(PHP_EOL, $form_state->getValue('name_list', ''));
++      $name_list = array_map('trim', $name_list);
++      $name_list = array_filter($name_list, $list_filter_callback);
++      $config->set('name_list', $name_list);
++    }
++
++    // Save config values.
++    $config->set('unset_by_rel', $unset_by_rel);
++    $config->set('unset_by_name', $unset_by_name);
++    $config->save();
++    parent::submitForm($form, $form_state);
++  }
++
++}

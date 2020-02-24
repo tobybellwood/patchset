@@ -1,0 +1,39 @@
+diff --git a/src/Tests/TfaConfigTest.php b/src/Tests/TfaConfigTest.php
+index d02560c..be80ca8 100644
+--- a/src/Tests/TfaConfigTest.php
++++ b/src/Tests/TfaConfigTest.php
+@@ -42,7 +42,7 @@ class TfaConfigTest extends TfaTestBase {
+     // Enable TFA module and the test module.
+     parent::setUp();
+     $this->webUser = $this->drupalCreateUser(['setup own tfa']);
+-    $this->adminUser = $this->drupalCreateUser(['administer users', 'administer site configuration']);
++    $this->adminUser = $this->drupalCreateUser(['admin tfa settings']);
+   }
+ 
+   /**
+diff --git a/tests/src/Functional/TfaTestBase.php b/tests/src/Functional/TfaTestBase.php
+index 24a363a..e901e81 100644
+--- a/tests/src/Functional/TfaTestBase.php
++++ b/tests/src/Functional/TfaTestBase.php
+@@ -90,7 +90,7 @@ abstract class TfaTestBase extends BrowserTestBase {
+    */
+   protected function canEnableValidationPlugin($validation_plugin_id) {
+     $assert = $this->assertSession();
+-    $adminUser = $this->drupalCreateUser(['administer users', 'administer site configuration']);
++    $adminUser = $this->drupalCreateUser(['admin tfa settings']);
+     $this->drupalLogin($adminUser);
+ 
+     $this->drupalGet('admin/config/people/tfa');
+diff --git a/tfa.routing.yml b/tfa.routing.yml
+index f22cf0e..0f082e7 100644
+--- a/tfa.routing.yml
++++ b/tfa.routing.yml
+@@ -18,7 +18,7 @@ tfa.settings:
+   options:
+     _admin_route: TRUE
+   requirements:
+-    _permission: 'administer site configuration'
++    _permission: 'admin tfa settings'
+ 
+ tfa.login:
+   path: '/tfa/login'
