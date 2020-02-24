@@ -16,71 +16,71 @@
             "drupal/config_ignore": [
                 {
                     "description": "https://www.drupal.org/files/issues/2018-07-31/offset-error-within-2972302-13.patch",
-                    "filename": "./drupal/config_ignore/offset-error-within-2972302-13.patch"
+                    "filename": "drupal/config_ignore/offset-error-within-2972302-13.patch"
                 }
             ],
             "drupal/ga_login": [
                 {
                     "description": "https://www.drupal.org/files/issues/2018-12-28/3022921-2-time-skew-confusing.patch",
-                    "filename": "./drupal/ga_login/3022921-2-time-skew-confusing.patch"
+                    "filename": "drupal/ga_login/3022921-2-time-skew-confusing.patch"
                 }
             ],
             "drupal/panelizer": [
                 {
                     "description": "https://www.drupal.org/files/issues/2019-04-03/3031671-8.patch",
-                    "filename": "./drupal/panelizer/3031671-8.patch"
+                    "filename": "drupal/panelizer/3031671-8.patch"
                 }
             ],
             "drupal/metatag": [
                 {
                     "description": "https://www.drupal.org/files/issues/2019-02-28/metatag-unset-2735195-42.patch",
-                    "filename": "./drupal/metatag/metatag-unset-2735195-42.patch"
+                    "filename": "drupal/metatag/metatag-unset-2735195-42.patch"
                 }
             ],
             "drupal/events_log_track": [
                 {
                     "description": "https://www.drupal.org/files/issues/2018-04-19/2934036-check_empty_submit-5.patch",
-                    "filename": "./drupal/event_log_track/2934036-check_empty_submit-5.patch"
+                    "filename": "drupal/event_log_track/2934036-check_empty_submit-5.patch"
                 },
                 {
                     "description": "https://www.drupal.org/files/issues/increase-character-length-2930817-2.patch",
-                    "filename": "./drupal/event_log_track/increase-character-length-2930817-2.patch"
+                    "filename": "drupal/event_log_track/increase-character-length-2930817-2.patch"
                 },
                 {
                     "description": "https://www.drupal.org/files/issues/2018-06-26/events_log_track-add-workflows-2974170-7.patch",
-                    "filename": "./drupal/event_log_track/events_log_track-add-workflows-2974170-7.patch"
+                    "filename": "drupal/event_log_track/events_log_track-add-workflows-2974170-7.patch"
                 },
                 {
                     "description": "https://www.drupal.org/files/issues/2018-06-26/events-log-track_add-file-media-2959769-9.patch",
-                    "filename": "./drupal/event_log_track/events-log-track_add-file-media-2959769-9.patch"
+                    "filename": "drupal/event_log_track/events-log-track_add-file-media-2959769-9.patch"
                 },
                 {
                     "description": "https://www.drupal.org/files/issues/2019-01-22/event-log-track-auth-3027463-2.patch",
-                    "filename": "./drupal/event_log_track/event-log-track-auth-3027463-2.patch"
+                    "filename": "drupal/event_log_track/event-log-track-auth-3027463-2.patch"
                 },
                 {
                     "description": "error when we request password with non-existing users/emails on the Events Log Track User Authentication - https://www.drupal.org/project/events_log_track/issues/3060838#comment-13141212",
-                    "filename": "./drupal/event_log_track/3060838-4.patch"
+                    "filename": "drupal/event_log_track/3060838-4.patch"
                 }
             ],
             "drupal/google_analytics": [
                 {
                     "description": "https://www.drupal.org/files/issues/2018-06-18/patch_google_analytics.patch",
-                    "filename": "./drupal/google_analytics/patch_google_analytics.patch"
+                    "filename": "drupal/google_analytics/patch_google_analytics.patch"
                 }
             ],
             "drupal/tfa": [
                 {
                     "description": "https://www.drupal.org/files/issues/2943972-2.patch",
-                    "filename": "./drupal/tfa/2943972-2.patch"
+                    "filename": "drupal/tfa/2943972-2.patch"
                 },
                 {
                     "description": "https://www.drupal.org/files/issues/2019-03-01/2937336-17.patch",
-                    "filename": "./drupal/tfa/2937336-17.patch"
+                    "filename": "drupal/tfa/2937336-17.patch"
                 },
                 {
                     "description": "https://www.drupal.org/files/issues/2019-08-16/tfa-3075304_2.patch",
-                    "filename": "./drupal/tfa/tfa-3075304_2.patch"
+                    "filename": "drupal/tfa/tfa-3075304_2.patch"
                 }
             ]
         }
